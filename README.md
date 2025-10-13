@@ -1,50 +1,48 @@
-# Welcome to your Expo app 👋
+# ⏰ Detoxy – Manage Your App Usage Smartly
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**Detoxy** is a mobile application that helps users manage their phone time effectively by setting usage restrictions on installed apps.  
+Stay focused, avoid distractions, and take control of your digital habits — all in one place.
 
-## Get started
+---
 
-1. Install dependencies
+## 🌟 Features
+
+- 🔍 **View Installed Apps** – Automatically lists all apps on your device.
+- 🕒 **Set Time Restrictions** – Choose specific time ranges when selected apps should be locked (e.g., 9 AM – 5 PM).
+- 🚫 **Block Access Automatically** – When you try to open a restricted app, a friendly notification reminds you it’s currently unavailable.
+- 🔔 **Custom Notifications** – Get notified when restrictions start or end.
+- ⚙️ **Fully Customizable** – Modify or remove restrictions anytime.
+- 💡 **Lightweight & Intuitive UI** – Simple, modern design focused on productivity.
+
+---
+
+## 🧭 Use Case Example
+
+1. Open **Detoxy**  
+2. Browse your installed apps  
+3. Select “Facebook”  
+4. Set a restriction from **09:00 AM to 05:00 PM**  
+5. During this period, Facebook will be **blocked**  
+6. When you try to open it, you’ll see a **notification**:  
+   > "You can’t open this app right now — stay focused!"
+
+---
+
+## 🛠️ Tech Stack
+
+- **React Native** (Expo / CLI)
+- **JavaScript / TypeScript**
+- **AsyncStorage** (to store restriction data)
+- **Push Notifications** (via `react-native-push-notification`)
+- **Native Modules** (for app listing & blocking)
+- **DateTime Picker** (for time range selection)
+
+---
+
+## 🚀 Installation
+
+1. Clone the repository:
 
    ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+   git clone https://github.com/yourusername/DetoxApp.git
+   cd DetoxApp
