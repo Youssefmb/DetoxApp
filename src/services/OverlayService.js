@@ -1,32 +1,46 @@
-import { Alert, Platform } from 'react-native';
+import { Alert, Platform, Linking } from 'react-native';
 
 export const showBlockingOverlay = async (appName, restriction) => {
-  // In a real implementation, this would show a system overlay
-  // For now, we'll use an alert for demonstration
-  
-  if (Platform.OS === 'android') {
-    // This is where you would implement the native overlay
-    // Using SYSTEM_ALERT_WINDOW permission
-    
-    Alert.alert(
-      'App Blocked',
-      `You cannot open ${appName} right now. \n\nRestricted period: ${restriction.startTime} - ${restriction.endTime}`,
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            // In real implementation, this would force close the blocked app
-            console.log('User acknowledged block');
+  try {
+    if (Platform.OS === 'android') {
+      // Show a blocking alert that prevents app usage
+      Alert.alert(
+        '🚫 App Blocked',
+        `You cannot use ${appName} right now.\n\n` +
+        `⏰ Restricted period: ${restriction.startTime} - ${restriction.endTime}\n\n` +
+        `This app will be blocked during the specified hours.`,
+        [
+          {
+            text: 'OK, I Understand',
+            onPress: () => {
+              // In real implementation, this would force close the blocked app
+              // and potentially show a persistent overlay
+              console.log('User acknowledged app block');
+            }
+          },
+          {
+            text: 'App Settings',
+            onPress: () => {
+              // Navigate to app restrictions settings
+              // This is where user can modify the restriction
+            }
           }
-        }
-      ],
-      { cancelable: false }
-    );
+        ],
+        { cancelable: false }
+      );
+      
+      // Vibrate device to get attention (if vibration is available)
+      if (Platform.OS === 'android') {
+        // You would use React Native's Vibration API here
+        // Vibration.vibrate(1000);
+      }
+    }
+  } catch (error) {
+    console.error('Error showing blocking overlay:', error);
   }
 };
 
 export const hideBlockingOverlay = () => {
-  // Hide the overlay if it's shown
-  // This would communicate with the native overlay component
+  // In a real implementation, this would hide the native overlay
   console.log('Hiding blocking overlay');
 };

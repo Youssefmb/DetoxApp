@@ -7,10 +7,11 @@ import {
   TextInput,
   Image,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { GlobalStyles, Colors } from '../styles/GlobalStyles';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { getInstalledApps } from '../services/AppService';
+import { getInstalledApps, getAppIconSource } from '../services/AppService';
 import { getRestrictedApps } from '../services/StorageService';
 
 const AppListScreen = ({ navigation }) => {
@@ -18,6 +19,7 @@ const AppListScreen = ({ navigation }) => {
   const [filteredApps, setFilteredApps] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [restrictedApps, setRestrictedApps] = useState({});
 
   useEffect(() => {
@@ -31,16 +33,29 @@ const AppListScreen = ({ navigation }) => {
   const loadApps = async () => {
     try {
       setLoading(true);
-      const installedApps = await getInstalledApps();
-      const restricted = await getRestrictedApps();
+      const [installedApps, restricted] = await Promise.all([
+        getInstalledApps(),
+        getRestrictedApps()
+      ]);
       
-      setApps(installedApps);
+      // Sort apps by name
+      const sortedApps = installedApps.sort((a, b) => 
+        a.name.localeCompare(b.name)
+      );
+      
+      setApps(sortedApps);
       setRestrictedApps(restricted);
     } catch (error) {
       console.error('Error loading apps:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadApps();
   };
 
   const filterApps = () => {
@@ -50,7 +65,8 @@ const AppListScreen = ({ navigation }) => {
     }
     
     const filtered = apps.filter(app => 
-      app.name.toLowerCase().includes(searchQuery.toLowerCase())
+      app.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      app.packageName.toLowerCase().includes(searchQuery.toLowerCase())
     );
     setFilteredApps(filtered);
   };
@@ -63,51 +79,68 @@ const AppListScreen = ({ navigation }) => {
     return restrictedApps[packageName];
   };
 
-  const renderAppItem = ({ item }) => (
-    <TouchableOpacity 
-      style={GlobalStyles.card}
-      onPress={() => handleAppPress(item)}
-    >
-      <View style={[GlobalStyles.row, GlobalStyles.spaceBetween]}>
-        <View style={[GlobalStyles.row, { flex: 1 }]}>
-          {item.icon ? (
-            <Image 
-              source={{ uri: `data:image/png;base64,${item.icon}` }} 
-              style={{ width: 40, height: 40, borderRadius: 8 }}
-            />
-          ) : (
-            <View style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: Colors.grayLight, 
-              alignItems: 'center', justifyContent: 'center' }}>
-              <Icon name="android" size={24} color={Colors.gray} />
+  const renderAppItem = ({ item }) => {
+    const iconSource = getAppIconSource(item);
+    const isRestricted = isAppRestricted(item.packageName);
+
+    return (
+      <TouchableOpacity 
+        style={GlobalStyles.card}
+        onPress={() => handleAppPress(item)}
+      >
+        <View style={[GlobalStyles.row, GlobalStyles.spaceBetween]}>
+          <View style={[GlobalStyles.row, { flex: 1 }]}>
+            {iconSource ? (
+              <Image 
+                source={iconSource}
+                style={{ width: 40, height: 40, borderRadius: 8 }}
+                resizeMode="contain"
+              />
+            ) : (
+              <View style={{ 
+                width: 40, 
+                height: 40, 
+                borderRadius: 8, 
+                backgroundColor: Colors.grayLight,
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <Icon name="android" size={24} color={Colors.gray} />
+              </View>
+            )}
+            <View style={{ marginLeft: 12, flex: 1 }}>
+              <Text style={[GlobalStyles.text, { fontWeight: '600' }]} numberOfLines={1}>
+                {item.name}
+              </Text>
+              <Text style={[GlobalStyles.textMuted, { fontSize: 12 }]} numberOfLines={1}>
+                {item.packageName}
+              </Text>
             </View>
-          )}
-          <View style={{ marginLeft: 12, flex: 1 }}>
-            <Text style={[GlobalStyles.text, { fontWeight: '600' }]} numberOfLines={1}>
-              {item.name}
-            </Text>
-            <Text style={[GlobalStyles.textMuted, { fontSize: 12 }]} numberOfLines={1}>
-              {item.packageName}
-            </Text>
+          </View>
+          
+          <View style={[GlobalStyles.row, { alignItems: 'center' }]}>
+            {isRestricted && (
+              <View style={[GlobalStyles.badge, { 
+                backgroundColor: Colors.success, 
+                marginRight: 8 
+              }]}>
+                <Text style={GlobalStyles.badgeText}>Restricted</Text>
+              </View>
+            )}
+            <Icon name="chevron-right" size={20} color={Colors.gray} />
           </View>
         </View>
-        
-        <View style={[GlobalStyles.row, { alignItems: 'center' }]}>
-          {isAppRestricted(item.packageName) && (
-            <View style={[GlobalStyles.badge, { backgroundColor: Colors.success, marginRight: 8 }]}>
-              <Text style={GlobalStyles.badgeText}>Restricted</Text>
-            </View>
-          )}
-          <Icon name="chevron-right" size={20} color={Colors.gray} />
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   if (loading) {
     return (
       <View style={[GlobalStyles.container, GlobalStyles.center]}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={[GlobalStyles.text, { marginTop: 16 }]}>Loading installed apps...</Text>
+        <Text style={[GlobalStyles.text, { marginTop: 16 }]}>
+          Loading installed apps...
+        </Text>
       </View>
     );
   }
@@ -119,8 +152,13 @@ const AppListScreen = ({ navigation }) => {
         <View style={[GlobalStyles.row, { alignItems: 'center' }]}>
           <Icon name="magnify" size={20} color={Colors.gray} />
           <TextInput
-            style={[GlobalStyles.input, { borderWidth: 0, flex: 1, marginLeft: 8 }]}
-            placeholder="Search apps..."
+            style={[GlobalStyles.input, { 
+              borderWidth: 0, 
+              flex: 1, 
+              marginLeft: 8,
+              paddingVertical: 8 
+            }]}
+            placeholder="Search apps by name or package..."
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
@@ -132,6 +170,14 @@ const AppListScreen = ({ navigation }) => {
         </View>
       </View>
 
+      {/* App Count */}
+      <View style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
+        <Text style={[GlobalStyles.textMuted, { fontSize: 14 }]}>
+          {filteredApps.length} apps found
+          {searchQuery && ` for "${searchQuery}"`}
+        </Text>
+      </View>
+
       {/* App List */}
       <FlatList
         data={filteredApps}
@@ -139,23 +185,55 @@ const AppListScreen = ({ navigation }) => {
         keyExtractor={(item) => item.packageName}
         contentContainerStyle={{ padding: 16 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[Colors.primary]}
+          />
+        }
         ListEmptyComponent={
           <View style={[GlobalStyles.center, { padding: 32 }]}>
             <Icon name="apps" size={64} color={Colors.grayLight} />
-            <Text style={[GlobalStyles.text, { marginTop: 16, textAlign: 'center' }]}>
-              {searchQuery ? 'No apps found matching your search' : 'No apps found'}
+            <Text style={[GlobalStyles.title, { 
+              textAlign: 'center', 
+              marginTop: 16 
+            }]}>
+              No Apps Found
+            </Text>
+            <Text style={[GlobalStyles.text, { 
+              textAlign: 'center', 
+              marginTop: 8 
+            }]}>
+              {searchQuery 
+                ? 'No apps match your search query'
+                : 'No installed apps found'
+              }
             </Text>
           </View>
         }
       />
 
-      {/* View Restricted Apps Button */}
-      <TouchableOpacity 
-        style={[GlobalStyles.button, { margin: 16 }]}
-        onPress={() => navigation.navigate('RestrictedApps')}
-      >
-        <Text style={GlobalStyles.buttonText}>View Restricted Apps</Text>
-      </TouchableOpacity>
+      {/* Action Buttons */}
+      <View style={{ padding: 16 }}>
+        <TouchableOpacity 
+          style={[GlobalStyles.button, { marginBottom: 8 }]}
+          onPress={() => navigation.navigate('RestrictedApps')}
+        >
+          <Text style={GlobalStyles.buttonText}>
+            View Restricted Apps ({Object.keys(restrictedApps).length})
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[GlobalStyles.button, GlobalStyles.buttonSecondary]}
+          onPress={onRefresh}
+        >
+          <Text style={GlobalStyles.buttonSecondaryText}>
+            Refresh App List
+          </Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };

@@ -1,28 +1,41 @@
+import { NativeModules, Platform } from 'react-native';
 import BackgroundTimer from 'react-native-background-timer';
-import { getForegroundApp } from './AppService';
 import { getRestrictedApps } from './StorageService';
-import { showBlockingOverlay, hideBlockingOverlay } from './OverlayService';
+import { showBlockingOverlay } from './OverlayService';
 import moment from 'moment';
+
+const { AppBlockingModule } = NativeModules;
 
 let isMonitoring = false;
 let currentBlockedApp = null;
 
-export const startAppMonitoring = () => {
+export const startAppMonitoring = async () => {
   if (isMonitoring) {
     console.log('App monitoring already started');
     return;
   }
 
-  isMonitoring = true;
-  console.log('Starting app monitoring service...');
-
-  BackgroundTimer.runBackgroundTimer(async () => {
-    try {
-      await checkForegroundApp();
-    } catch (error) {
-      console.error('Error in background monitoring:', error);
+  try {
+    if (Platform.OS === 'android') {
+      // Start native Android service
+      await AppBlockingModule.startAppBlockingService();
     }
-  }, 2000); // Check every 2 seconds
+    
+    isMonitoring = true;
+    console.log('Starting app monitoring service...');
+
+    // JavaScript-based monitoring as fallback
+    BackgroundTimer.runBackgroundTimer(async () => {
+      try {
+        await checkAndBlockApps();
+      } catch (error) {
+        console.error('Error in background monitoring:', error);
+      }
+    }, 3000); // Check every 3 seconds
+
+  } catch (error) {
+    console.error('Error starting app monitoring:', error);
+  }
 };
 
 export const stopAppMonitoring = () => {
@@ -30,58 +43,51 @@ export const stopAppMonitoring = () => {
     return;
   }
 
-  isMonitoring = false;
-  BackgroundTimer.stopBackgroundTimer();
-  console.log('App monitoring service stopped');
-  
-  // Hide any active overlay
-  if (currentBlockedApp) {
-    hideBlockingOverlay();
-    currentBlockedApp = null;
+  try {
+    if (Platform.OS === 'android') {
+      AppBlockingModule.stopAppBlockingService();
+    }
+    
+    isMonitoring = false;
+    BackgroundTimer.stopBackgroundTimer();
+    console.log('App monitoring service stopped');
+    
+    // Hide any active overlay
+    if (currentBlockedApp) {
+      currentBlockedApp = null;
+    }
+  } catch (error) {
+    console.error('Error stopping app monitoring:', error);
   }
 };
 
-const checkForegroundApp = async () => {
+const checkAndBlockApps = async () => {
   try {
-    const foregroundApp = await getForegroundApp();
     const restrictedApps = await getRestrictedApps();
+    const currentTime = moment().format('HH:mm');
+    const currentDay = moment().format('dddd').toLowerCase();
 
-    if (!foregroundApp || !restrictedApps[foregroundApp.packageName]) {
-      // No restricted app in foreground, hide overlay if shown
-      if (currentBlockedApp) {
-        hideBlockingOverlay();
-        currentBlockedApp = null;
-      }
-      return;
-    }
-
-    const restriction = restrictedApps[foregroundApp.packageName];
+    // Get mock foreground app (in real implementation, this would come from native module)
+    const mockForegroundApp = await getMockForegroundApp();
     
-    if (shouldBlockApp(restriction)) {
-      if (currentBlockedApp !== foregroundApp.packageName) {
-        currentBlockedApp = foregroundApp.packageName;
-        await showBlockingOverlay(foregroundApp.name, restriction);
-      }
-    } else {
-      // App shouldn't be blocked now, hide overlay
-      if (currentBlockedApp === foregroundApp.packageName) {
-        hideBlockingOverlay();
-        currentBlockedApp = null;
+    if (mockForegroundApp && restrictedApps[mockForegroundApp.packageName]) {
+      const restriction = restrictedApps[mockForegroundApp.packageName];
+      
+      if (shouldBlockApp(restriction, currentTime, currentDay)) {
+        console.log(`Blocking app: ${mockForegroundApp.name}`);
+        await showBlockingOverlay(mockForegroundApp.name, restriction);
+        currentBlockedApp = mockForegroundApp.packageName;
       }
     }
   } catch (error) {
-    console.error('Error checking foreground app:', error);
+    console.error('Error checking and blocking apps:', error);
   }
 };
 
-const shouldBlockApp = (restriction) => {
+const shouldBlockApp = (restriction, currentTime, currentDay) => {
   if (!restriction.enabled) {
     return false;
   }
-
-  const now = moment();
-  const currentTime = now.format('HH:mm');
-  const currentDay = now.format('dddd').toLowerCase();
 
   // Check if restriction is active for current day
   if (!restriction.days[currentDay]) {
@@ -90,6 +96,27 @@ const shouldBlockApp = (restriction) => {
 
   // Check if current time is within restriction period
   return currentTime >= restriction.startTime && currentTime <= restriction.endTime;
+};
+
+// Mock function to simulate detecting foreground app
+const getMockForegroundApp = async () => {
+  // In real implementation, this would come from native Android module
+  // For demo purposes, we'll randomly return a restricted app
+  const restrictedApps = await getRestrictedApps();
+  const restrictedPackages = Object.keys(restrictedApps);
+  
+  if (restrictedPackages.length > 0) {
+    // Simulate detecting a restricted app 30% of the time for demo
+    if (Math.random() < 0.3) {
+      const randomPackage = restrictedPackages[Math.floor(Math.random() * restrictedPackages.length)];
+      return {
+        packageName: randomPackage,
+        name: randomPackage.split('.').pop() // Extract app name from package
+      };
+    }
+  }
+  
+  return null;
 };
 
 export const isMonitoringActive = () => {

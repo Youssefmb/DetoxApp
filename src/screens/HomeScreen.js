@@ -22,7 +22,7 @@ const HomeScreen = ({ navigation }) => {
   const loadData = async () => {
     const apps = await getRestrictedApps();
     setRestrictedAppsCount(Object.keys(apps).length);
-    
+
     const hasPermissions = await checkPermissions();
     setPermissionsGranted(hasPermissions);
   };
@@ -62,7 +62,39 @@ const HomeScreen = ({ navigation }) => {
         <Text style={[GlobalStyles.text, { color: '#fff', textAlign: 'center', marginTop: 8 }]}>
           Block distracting apps during your focused hours and boost your productivity
         </Text>
-        
+        // Add this to the HomeScreen component, after the header card
+        <View style={[GlobalStyles.card, { backgroundColor: Colors.light }]}>
+          <View style={[GlobalStyles.row, GlobalStyles.spaceBetween]}>
+            <View style={[GlobalStyles.row, { alignItems: 'center' }]}>
+              <View
+                style={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: 6,
+                  backgroundColor: permissionsGranted ? Colors.success : Colors.warning,
+                  marginRight: 8
+                }}
+              />
+              <Text style={GlobalStyles.text}>
+                {permissionsGranted ? 'Protection Active' : 'Setup Required'}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={[GlobalStyles.badge, { backgroundColor: Colors.primary }]}
+              onPress={() => navigation.navigate('Settings')}
+            >
+              <Text style={GlobalStyles.badgeText}>
+                {permissionsGranted ? 'ACTIVE' : 'SETUP'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {!permissionsGranted && (
+            <Text style={[GlobalStyles.textMuted, { fontSize: 14, marginTop: 8 }]}>
+              Grant permissions in Settings to enable app blocking
+            </Text>
+          )}
+        </View>
         <View style={[GlobalStyles.row, { justifyContent: 'space-around', marginTop: 24 }]}>
           <View style={GlobalStyles.center}>
             <Text style={[GlobalStyles.title, { color: '#fff', fontSize: 32 }]}>
@@ -73,10 +105,10 @@ const HomeScreen = ({ navigation }) => {
             </Text>
           </View>
           <View style={GlobalStyles.center}>
-            <Icon 
-              name={permissionsGranted ? 'shield-check' : 'shield-alert'} 
-              size={32} 
-              color={permissionsGranted ? Colors.success : Colors.warning} 
+            <Icon
+              name={permissionsGranted ? 'shield-check' : 'shield-alert'}
+              size={32}
+              color={permissionsGranted ? Colors.success : Colors.warning}
             />
             <Text style={[GlobalStyles.text, { color: '#fff', fontSize: 14, marginTop: 4 }]}>
               {permissionsGranted ? 'Active' : 'Setup Required'}
@@ -89,7 +121,7 @@ const HomeScreen = ({ navigation }) => {
       <View style={{ marginVertical: 24 }}>
         <Text style={GlobalStyles.subtitle}>Quick Actions</Text>
         <View style={[GlobalStyles.row, { flexWrap: 'wrap', justifyContent: 'space-between' }]}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[GlobalStyles.card, { width: '48%', alignItems: 'center' }]}
             onPress={() => navigation.navigate('AppList')}
           >
@@ -99,7 +131,7 @@ const HomeScreen = ({ navigation }) => {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[GlobalStyles.card, { width: '48%', alignItems: 'center' }]}
             onPress={() => navigation.navigate('RestrictedApps')}
           >
@@ -135,7 +167,7 @@ const HomeScreen = ({ navigation }) => {
       </View>
 
       {/* Get Started Button */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={[GlobalStyles.button, { marginTop: 16 }]}
         onPress={handleGetStarted}
       >
