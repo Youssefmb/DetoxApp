@@ -1,7 +1,7 @@
 import { Platform, NativeModules } from 'react-native';
 import { checkPermissions } from './PermissionService';
 
-const { AppListModule } = NativeModules;
+const { AppListeModule } = NativeModules;
 
 // Mock data as fallback
 const MOCK_APPS = [
@@ -43,9 +43,9 @@ export const getInstalledApps = async () => {
     }
 
     // Use native module to get real installed apps
-    if (Platform.OS === 'android' && AppListModule) {
+    if (Platform.OS === 'android' && AppListeModule) {
       try {
-        const apps = await AppListModule.getNonSystemApps();
+        const apps = await AppListeModule.getNonSystemApps();
         console.log(`Found ${apps.length} installed apps`);
         
         // Process the apps to ensure they have the correct structure
@@ -72,8 +72,8 @@ export const getInstalledApps = async () => {
 
 export const getAllInstalledApps = async () => {
   try {
-    if (Platform.OS === 'android' && AppListModule) {
-      const apps = await AppListModule.getInstalledApps();
+    if (Platform.OS === 'android' && AppListeModule) {
+      const apps = await AppListeModule.getInstalledApps();
       return apps.map(app => ({
         name: app.name || 'Unknown App',
         packageName: app.packageName,
