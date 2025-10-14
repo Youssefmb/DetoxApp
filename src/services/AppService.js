@@ -4,42 +4,42 @@ import { checkPermissions } from './PermissionService';
 const { AppListeModule } = NativeModules;
 
 // Mock data as fallback
-const MOCK_APPS = [
-  {
-    name: 'Facebook',
-    packageName: 'com.facebook.katana',
-    icon: null
-  },
-  {
-    name: 'Instagram',
-    packageName: 'com.instagram.android',
-    icon: null
-  },
-  {
-    name: 'Twitter', 
-    packageName: 'com.twitter.android',
-    icon: null
-  },
-  {
-    name: 'WhatsApp',
-    packageName: 'com.whatsapp',
-    icon: null
-  },
-  {
-    name: 'Chrome',
-    packageName: 'com.android.chrome',
-    icon: null
-  }
-];
+// const MOCK_APPS = [
+//   {
+//     name: 'Facebook',
+//     packageName: 'com.facebook.katana',
+//     icon: null
+//   },
+//   {
+//     name: 'Instagram',
+//     packageName: 'com.instagram.android',
+//     icon: null
+//   },
+//   {
+//     name: 'Twitter', 
+//     packageName: 'com.twitter.android',
+//     icon: null
+//   },
+//   {
+//     name: 'WhatsApp',
+//     packageName: 'com.whatsapp',
+//     icon: null
+//   },
+//   {
+//     name: 'Chrome',
+//     packageName: 'com.android.chrome',
+//     icon: null
+//   }
+// ];
 
 export const getInstalledApps = async () => {
   try {
     // Check if we have necessary permissions
     const hasPermissions = await checkPermissions();
-    
+
     if (!hasPermissions) {
       console.warn('Missing permissions for getting installed apps');
-      return MOCK_APPS;
+      // return MOCK_APPS;
     }
 
     // Use native module to get real installed apps
@@ -47,26 +47,26 @@ export const getInstalledApps = async () => {
       try {
         const apps = await AppListeModule.getNonSystemApps();
         console.log(`Found ${apps.length} installed apps`);
-        
+
         // Process the apps to ensure they have the correct structure
         const processedApps = apps.map(app => ({
           name: app.name || 'Unknown App',
           packageName: app.packageName,
           icon: app.icon || null
         }));
-        
+
         return processedApps;
       } catch (nativeError) {
         console.error('Error getting apps from native module:', nativeError);
-        return MOCK_APPS;
+        // return MOCK_APPS;
       }
     } else {
       console.warn('Native module not available, using mock data');
-      return MOCK_APPS;
+      // return MOCK_APPS;
     }
   } catch (error) {
     console.error('Error getting installed apps:', error);
-    return MOCK_APPS; // Fallback to mock data
+    // return MOCK_APPS; // Fallback to mock data
   }
 };
 
@@ -83,7 +83,7 @@ export const getAllInstalledApps = async () => {
     return await getInstalledApps();
   } catch (error) {
     console.error('Error getting all installed apps:', error);
-    return MOCK_APPS;
+    // return MOCK_APPS;
   }
 };
 

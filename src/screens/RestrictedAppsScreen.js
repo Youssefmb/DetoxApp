@@ -172,7 +172,7 @@ const RestrictedAppsScreen = ({ navigation }) => {
             No Restrictions Set
           </Text>
           <Text style={[GlobalStyles.text, { textAlign: 'center', marginTop: 8 }]}>
-            You haven't set any app restrictions yet. Start by selecting apps to restrict.
+            You set any app restrictions yet. Start by selecting apps to restrict.
           </Text>
           <TouchableOpacity 
             style={[GlobalStyles.button, { marginTop: 24 }]}

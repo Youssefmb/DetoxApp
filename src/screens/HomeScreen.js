@@ -62,7 +62,6 @@ const HomeScreen = ({ navigation }) => {
         <Text style={[GlobalStyles.text, { color: '#fff', textAlign: 'center', marginTop: 8 }]}>
           Block distracting apps during your focused hours and boost your productivity
         </Text>
-        // Add this to the HomeScreen component, after the header card
         <View style={[GlobalStyles.card, { backgroundColor: Colors.light }]}>
           <View style={[GlobalStyles.row, GlobalStyles.spaceBetween]}>
             <View style={[GlobalStyles.row, { alignItems: 'center' }]}>

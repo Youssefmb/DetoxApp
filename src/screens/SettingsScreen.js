@@ -6,18 +6,18 @@ import {
   TouchableOpacity,
   Alert,
   Switch,
-  Linking,
+  NativeModules,
 } from 'react-native';
 import { GlobalStyles, Colors } from '../styles/GlobalStyles';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { 
   checkPermissions, 
   requestPermissions,
-  hasUsageAccessPermission,
-  hasOverlayPermission,
   openUsageAccessSettings,
   openOverlaySettings 
 } from '../services/PermissionService';
+
+const { OverlayPermissionModule } = NativeModules;
 
 const SettingsScreen = () => {
   const [permissions, setPermissions] = useState({
@@ -29,24 +29,38 @@ const SettingsScreen = () => {
 
   useEffect(() => {
     checkPermissionStatus();
+    
+    // Refresh permissions periodically since we can't use navigation focus
+    const interval = setInterval(() => {
+      checkPermissionStatus();
+    }, 2000); // Check every 2 seconds when screen is open
+    
+    return () => clearInterval(interval);
   }, []);
 
   const checkPermissionStatus = async () => {
-    const status = await checkPermissions();
-    setPermissions(status);
+    try {
+      const status = await checkPermissions();
+      setPermissions(status);
+    } catch (error) {
+      console.error('Error checking permissions:', error);
+    }
   };
 
   const handlePermissionRequest = async (permissionType) => {
     try {
       const granted = await requestPermissions(permissionType);
       
-      if (granted) {
-        Alert.alert('Success', `${permissionType} permission granted`);
+      // Re-check permissions after a short delay to see if user granted them
+      setTimeout(() => {
         checkPermissionStatus();
-      } else {
+      }, 1000);
+      
+      if (!granted && permissionType !== 'notification') {
+        // For usageAccess and overlay, we need to guide user to settings
         Alert.alert(
           'Permission Required',
-          `Restricto needs ${permissionType} permission to function properly. Would you like to open settings to grant it manually?`,
+          `Restricto needs ${permissionType} permission to function properly. Please grant the permission in settings.`,
           [
             { text: 'Cancel', style: 'cancel' },
             { 
@@ -61,8 +75,11 @@ const SettingsScreen = () => {
             }
           ]
         );
+      } else if (granted) {
+        Alert.alert('Success', `${permissionType} permission granted`);
       }
     } catch (error) {
+      console.error('Error requesting permission:', error);
       Alert.alert('Error', `Failed to request ${permissionType} permission`);
     }
   };
@@ -110,6 +127,7 @@ const SettingsScreen = () => {
     <ScrollView style={GlobalStyles.container} contentContainerStyle={{ padding: 16 }}>
       {/* Permissions Section */}
       <Text style={GlobalStyles.subtitle}>App Permissions</Text>
+      
       <PermissionItem
         icon="eye"
         title="Usage Access"
@@ -184,6 +202,14 @@ const SettingsScreen = () => {
             Privacy Policy
           </Text>
         </View>
+      </TouchableOpacity>
+
+      {/* Refresh Button */}
+      <TouchableOpacity 
+        style={[GlobalStyles.button, { marginTop: 16 }]}
+        onPress={checkPermissionStatus}
+      >
+        <Text style={GlobalStyles.buttonText}>Refresh Permission Status</Text>
       </TouchableOpacity>
     </ScrollView>
   );
