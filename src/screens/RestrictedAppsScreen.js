@@ -1,17 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  Alert,
-  RefreshControl,
-} from 'react-native';
-import { GlobalStyles, Colors } from '../styles/GlobalStyles';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { getRestrictedApps, deleteRestriction } from '../services/StorageService';
-import { getInstalledApps } from '../services/AppService';
 import moment from 'moment';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  FlatList,
+  RefreshControl,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { getInstalledApps } from '../services/AppService';
+import { syncRestrictedApps } from '../services/BackgroundService';
+import { deleteRestriction, getRestrictedApps } from '../services/StorageService';
+import { Colors, GlobalStyles } from '../styles/GlobalStyles';
 
 const RestrictedAppsScreen = ({ navigation }) => {
   const [restrictedApps, setRestrictedApps] = useState({});
@@ -62,6 +63,7 @@ const RestrictedAppsScreen = ({ navigation }) => {
           style: 'destructive',
           onPress: async () => {
             await deleteRestriction(packageName);
+            await syncRestrictedApps();
             loadData();
           }
         }

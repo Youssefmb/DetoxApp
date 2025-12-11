@@ -1,7 +1,7 @@
-import { Platform, Alert, Linking, NativeModules, PermissionsAndroid } from 'react-native';
+import { Alert, Linking, NativeModules, PermissionsAndroid, Platform } from 'react-native';
 
-// For Android, we'll use direct native methods
-const { RNAndroidPermissions } = NativeModules;
+// Use our native modules for overlay and usage stats checks
+const { OverlayPermissionModule } = NativeModules;
 
 export const checkPermissions = async () => {
     if (Platform.OS !== 'android') {
@@ -16,7 +16,7 @@ export const checkPermissions = async () => {
         const [usageAccess, overlay, notification] = await Promise.all([
             checkUsageAccessPermission(),
             checkOverlayPermission(),
-            checkNotificationPermission()
+            checkNotificationPermission(),
         ]);
 
         return {
@@ -39,28 +39,15 @@ const checkUsageAccessPermission = async () => {
     if (Platform.OS !== 'android') return true;
 
     try {
-        // Method 1: Try using AppUsageStats (Android 5.0+)
-        const hasUsageAccess = await checkUsageAccessNative();
-        return hasUsageAccess;
+        if (OverlayPermissionModule?.checkUsageStatsPermission) {
+            const hasUsageAccess = await OverlayPermissionModule.checkUsageStatsPermission();
+            return !!hasUsageAccess;
+        }
+        return false;
     } catch (error) {
         console.error('Error checking usage access:', error);
         return false;
     }
-};
-
-// Native method to check usage access
-const checkUsageAccessNative = () => {
-    return new Promise((resolve) => {
-        if (Platform.OS !== 'android') {
-            resolve(true);
-            return;
-        }
-
-        // For Android, we'll use a different approach
-        // We'll try to open usage stats and check if our app is there
-        // This is a workaround since direct checking might not be available
-        resolve(false); // Assume false by default
-    });
 };
 
 // Real implementation for Overlay Permission
@@ -68,10 +55,9 @@ const checkOverlayPermission = async () => {
     if (Platform.OS !== 'android') return true;
 
     try {
-        // For Android M (API 23) and above
-        if (Platform.Version >= 23) {
-            const canDrawOverlays = await checkOverlayPermissionNative();
-            return canDrawOverlays;
+        if (Platform.Version >= 23 && OverlayPermissionModule?.checkOverlayPermission) {
+            const canDrawOverlays = await OverlayPermissionModule.checkOverlayPermission();
+            return !!canDrawOverlays;
         }
         return true; // Below Android M, overlay is granted by default
     } catch (error) {
@@ -81,30 +67,7 @@ const checkOverlayPermission = async () => {
 };
 
 // Native method to check overlay permission
-const checkOverlayPermissionNative = () => {
-    return new Promise((resolve) => {
-        if (Platform.OS !== 'android') {
-            resolve(true);
-            return;
-        }
-
-        // Use Settings.canDrawOverlays for Android
-        if (NativeModules.SettingsManager) {
-            NativeModules.SettingsManager.canDrawOverlays((error, result) => {
-                if (error) {
-                    console.error('Error checking overlay:', error);
-                    resolve(false);
-                } else {
-                    resolve(result);
-                }
-            });
-        } else {
-            resolve(false);
-        }
-    });
-};
-
-// Real implementation for Notification Permission
+// Notification Permission
 const checkNotificationPermission = async () => {
     if (Platform.OS !== 'android') return true;
 
@@ -146,16 +109,24 @@ const requestUsageAccessPermission = async () => {
     if (Platform.OS !== 'android') return true;
 
     try {
+        // Try to open the Usage Access settings directly (Android-only)
+        try {
+            await Linking.sendIntent('android.settings.USAGE_ACCESS_SETTINGS');
+            return false;
+        } catch (intentError) {
+            console.warn('Unable to open usage access settings via intent, falling back:', intentError);
+        }
+
         Alert.alert(
             'Usage Access Required',
-            'Restricto needs usage access permission to monitor which apps you\'re using. Please enable it in settings.',
+            "Restricto needs usage access permission to monitor which apps you're using. Please enable it in settings.",
             [
                 { text: 'Cancel', style: 'cancel' },
                 {
                     text: 'Open Settings',
-                    onPress: () => openUsageAccessSettings()
-                }
-            ]
+                    onPress: () => openUsageAccessSettings(),
+                },
+            ],
         );
         return false;
     } catch (error) {
@@ -168,22 +139,23 @@ const requestOverlayPermission = async () => {
     if (Platform.OS !== 'android') return true;
 
     try {
-        // For Android M+, we need to request overlay permission
-        if (Platform.Version >= 23) {
-            Alert.alert(
-                'Overlay Permission Required',
-                'Restricto needs to display over other apps to show blocking overlays. Please enable this permission in settings.',
-                [
-                    { text: 'Cancel', style: 'cancel' },
-                    {
-                        text: 'Open Settings',
-                        onPress: () => openOverlaySettings()
-                    }
-                ]
-            );
+        if (Platform.Version >= 23 && OverlayPermissionModule?.requestOverlayPermission) {
+            await OverlayPermissionModule.requestOverlayPermission();
             return false;
         }
-        return true;
+
+        Alert.alert(
+            'Overlay Permission Required',
+            'Restricto needs to display over other apps to show blocking overlays. Please enable this permission in settings.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Open Settings',
+                    onPress: () => openOverlaySettings(),
+                },
+            ],
+        );
+        return false;
     } catch (error) {
         console.error('Error requesting overlay permission:', error);
         return false;
@@ -219,8 +191,10 @@ export const hasOverlayPermission = checkOverlayPermission;
 
 export const openUsageAccessSettings = () => {
     if (Platform.OS === 'android') {
-        // Open usage access settings
-        Linking.openURL('package:com.yourapp.package&action=android.settings.USAGE_ACCESS_SETTINGS');
+        // Open usage access settings list
+        Linking.openURL('android.settings.USAGE_ACCESS_SETTINGS').catch(() => {
+            Linking.openSettings();
+        });
     } else {
         Linking.openSettings();
     }
@@ -228,8 +202,9 @@ export const openUsageAccessSettings = () => {
 
 export const openOverlaySettings = () => {
     if (Platform.OS === 'android') {
-        // Open overlay settings specifically
-        Linking.openURL('package:com.yourapp.package&action=android.settings.action.MANAGE_OVERLAY_PERMISSION');
+        Linking.openURL('android.settings.action.MANAGE_OVERLAY_PERMISSION').catch(() => {
+            Linking.openSettings();
+        });
     } else {
         Linking.openSettings();
     }

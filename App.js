@@ -30,11 +30,11 @@ const App = () => {
           [{ text: 'Got it' }]
         );
       } else {
-        Alert.alert(
-          '⚠️ Permissions Needed',
-          'Please grant all permissions in Settings for app blocking to work properly.',
-          [{ text: 'Open Settings', onPress: () => {} }]
-        );
+        // Alert.alert(
+        //   '⚠️ Permissions Needed',
+        //   'Please grant all permissions in Settings for app blocking to work properly.',
+        //   [{ text: 'Open Settings', onPress: () => {} }]
+        // );
       }
       
       setServicesReady(true);

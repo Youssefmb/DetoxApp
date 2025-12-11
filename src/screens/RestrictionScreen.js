@@ -1,17 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  Switch,
-} from 'react-native';
-import { GlobalStyles, Colors } from '../styles/GlobalStyles';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import moment from 'moment';
-import { saveRestriction, getRestriction, deleteRestriction } from '../services/StorageService';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  ScrollView,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { startAppMonitoring, syncRestrictedApps } from '../services/BackgroundService';
+import { deleteRestriction, getRestriction, saveRestriction } from '../services/StorageService';
+import { Colors, GlobalStyles } from '../styles/GlobalStyles';
 
 const RestrictionScreen = ({ navigation, route }) => {
   const { app } = route.params;
@@ -48,6 +49,8 @@ const RestrictionScreen = ({ navigation, route }) => {
   const handleSave = async () => {
     try {
       await saveRestriction(app.packageName, restriction);
+      await syncRestrictedApps();
+      await startAppMonitoring();
       Alert.alert(
         'Success',
         `Restriction for ${app.name} has been ${isEditing ? 'updated' : 'saved'} successfully`,
@@ -69,6 +72,7 @@ const RestrictionScreen = ({ navigation, route }) => {
           style: 'destructive',
           onPress: async () => {
             await deleteRestriction(app.packageName);
+        await syncRestrictedApps();
             navigation.goBack();
           }
         }

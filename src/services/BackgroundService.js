@@ -9,6 +9,20 @@ const { AppBlockingModule } = NativeModules;
 let isMonitoring = false;
 let currentBlockedApp = null;
 
+export const syncRestrictedApps = async () => {
+  try {
+    const restrictedApps = await getRestrictedApps();
+    const packages = Object.keys(restrictedApps);
+
+    if (Platform.OS === 'android' && AppBlockingModule?.updateRestrictedApps) {
+      await AppBlockingModule.updateRestrictedApps(packages);
+      console.log(`Synced ${packages.length} restricted apps to native service`);
+    }
+  } catch (error) {
+    console.error('Error syncing restricted apps:', error);
+  }
+};
+
 export const startAppMonitoring = async () => {
   if (isMonitoring) {
     console.log('App monitoring already started');
@@ -16,6 +30,8 @@ export const startAppMonitoring = async () => {
   }
 
   try {
+    await syncRestrictedApps();
+
     if (Platform.OS === 'android') {
       // Start native Android service
       await AppBlockingModule.startAppBlockingService();
@@ -111,7 +127,7 @@ const getMockForegroundApp = async () => {
       const randomPackage = restrictedPackages[Math.floor(Math.random() * restrictedPackages.length)];
       return {
         packageName: randomPackage,
-        name: randomPackage.split('.').pop() // Extract app name from package
+        name: randomPackage // Extract app name from package
       };
     }
   }

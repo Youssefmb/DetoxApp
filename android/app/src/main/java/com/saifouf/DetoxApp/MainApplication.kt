@@ -13,9 +13,6 @@ import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint
 import com.facebook.react.defaults.DefaultReactNativeHost
 import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ReactNativeHostWrapper
-import com.yourapp.OverlayPermissionModule;
-
-// Import your custom package
 import com.saifouf.DetoxApp.AppBlockingPackage
 
 class MainApplication : Application(), ReactApplication {
@@ -55,27 +52,5 @@ class MainApplication : Application(), ReactApplication {
   override fun onConfigurationChanged(newConfig: Configuration) {
     super.onConfigurationChanged(newConfig)
     ApplicationLifecycleDispatcher.onConfigurationChanged(this, newConfig)
-  }
-
-  
-  Override
-  protected List<ReactPackage> getPackages() {
-    SuppressWarnings("UnnecessaryLocalVariable")
-    List<ReactPackage> packages = new PackageList(this).getPackages();
-    // Add your custom package
-    packages.add(new ReactPackage() {
-      Override
-      public List<NativeModule> createNativeModules(ReactApplicationContext reactContext) {
-        List<NativeModule> modules = new ArrayList<>();
-        modules.add(new OverlayPermissionModule(reactContext));
-        return modules;
-      }
-
-      Override
-      public List<ViewManager> createViewManagers(ReactApplicationContext reactContext) {
-        return Collections.emptyList();
-      }
-    });
-    return packages;
   }
 }
