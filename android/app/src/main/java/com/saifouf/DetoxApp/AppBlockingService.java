@@ -18,6 +18,8 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.widget.Toast;
 import android.content.pm.ServiceInfo;
+import android.app.ActivityManager; // Added import
+import android.app.Activity; // Added import
 
 import java.util.List;
 import java.util.SortedMap;
@@ -193,20 +195,32 @@ public class AppBlockingService extends Service {
             homeIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(homeIntent);
 
-            // 2) Launch our main app (Restricto) to foreground
+            // 2) Kill the background processes of the blocked app
+            // This helps prevent the app from quickly restarting
+            try {
+                ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+                am.killBackgroundProcesses(packageName);
+                Log.d(TAG, "Killed background processes for: " + packageName);
+            } catch (SecurityException e) {
+                Log.e(TAG, "No permission to kill background processes: " + e.getMessage());
+                // Note: You need the KILL_BACKGROUND_PROCESSES permission in your manifest
+                // <uses-permission android:name="android.permission.KILL_BACKGROUND_PROCESSES" />
+            }
+
+            // 3) Launch our main app (Restricto) to foreground
             Intent launchIntent = getPackageManager().getLaunchIntentForPackage("com.saifouf.DetoxApp");
             if (launchIntent != null) {
                 launchIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 startActivity(launchIntent);
             }
 
-            // 3) Optionally show blocker screen inside our app
+            // 4) Optionally show blocker screen inside our app
             Intent blockerIntent = new Intent(this, BlockerActivity.class);
             blockerIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
             blockerIntent.putExtra("blockedPackage", packageName);
             startActivity(blockerIntent);
 
-            // 4) Feedback toast
+            // 5) Feedback toast
             Toast.makeText(this, "Access blocked. Opening Restricto instead...", Toast.LENGTH_LONG).show();
             Log.d(TAG, "Blocked & redirected from: " + packageName);
         } catch (Exception e) {
@@ -214,4 +228,3 @@ public class AppBlockingService extends Service {
         }
     }
 }
-
